@@ -10,13 +10,21 @@ import SwiftUI
 import WebKit
 
 struct ContentView: View {
-    
+    @State private var rect: CGRect = .zero
     @State private var urlString = "https://www.apple.com"
     @State private var uiImage: UIImage? = nil
     
     var body: some View {
         VStack {
+            Button(action: {
+                self.uiImage = UIApplication.shared.windows[0].rootViewController?.view!.setImage(rect: self.rect)
+            }) {
+                Text("Screenshot")
+            }
+            
             WebView(url: URL(string: urlString)!)
+                .background(RectSettings(rect: $rect))
+            
             SheetView(uiImage: $uiImage)
         }
     }
@@ -80,5 +88,31 @@ struct ScreenShot: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+struct RectSettings: View {
+    @Binding var rect: CGRect
+    
+    var body: some View {
+        GeometryReader { geometry in
+            self.setView(proxy: geometry)
+        }
+    }
+    
+    func setView(proxy: GeometryProxy) -> some View {
+        DispatchQueue.main.async {
+            self.rect = proxy.frame(in: .global)
+        }
+        return Rectangle().fill(Color.clear)
+    }
+}
+
+extension UIView {
+    func setImage(rect: CGRect) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(bounds: rect)
+        return renderer.image { rendererContext in
+            layer.render(in: rendererContext.cgContext)
+        }
     }
 }
